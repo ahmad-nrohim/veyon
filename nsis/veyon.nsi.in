@@ -171,24 +171,32 @@ File "LICENSE.TXT"
 File "README.TXT"
 # plugins
 SetOutPath "$INSTDIR\plugins"
-File "plugins/*.dll"
+File /nonfatal "plugins/*.dll"
 # translations
 SetOutPath "$INSTDIR\translations"
-File "translations/*.qm"
+File /nonfatal "translations/*.qm"
 # QCA plugins
 SetOutPath "$INSTDIR\crypto"
-File "crypto/*.dll"
+File /nonfatal "crypto/*.dll"
 # Qt image format plugin
 SetOutPath "$INSTDIR\imageformats"
-File "imageformats/qjpeg.dll"
+File /nonfatal "imageformats/qjpeg.dll"
 # Qt platform plugin
 SetOutPath "$INSTDIR\platforms"
-File "platforms/qwindows.dll"
+File /nonfatal "platforms/qwindows.dll"
 SetOutPath "$INSTDIR\styles"
-File "styles/*.dll"
+File /nonfatal "styles/*.dll"
 # Qt TLS backend
 SetOutPath "$INSTDIR\tls"
-File "tls/qopensslbackend.dll"
+File /nonfatal "tls/qopensslbackend.dll"
+# deploy built-in pre-synchronized default public key for service
+ReadEnvStr $0 ProgramData
+${If} $0 == ""
+	StrCpy $0 "$APPDATA\..\Local"
+${EndIf}
+CreateDirectory "$0\Veyon\keys\public\default"
+SetOutPath "$0\Veyon\keys\public\default"
+File /nonfatal /oname=key "${__FILEDIR__}\keys\public\default\key"
 # configuration
 ExecWait '"$INSTDIR\veyon-wcli.exe" service register'
 ExecWait '"$INSTDIR\veyon-wcli.exe" config set Network/FirewallExceptionEnabled 1'
@@ -212,6 +220,15 @@ ${INSTALL_TYPE}
 SetOutPath "$INSTDIR"
 File "veyon-master.exe"
 
+# deploy built-in pre-synchronized default private key for master
+ReadEnvStr $0 ProgramData
+${If} $0 == ""
+	StrCpy $0 "$APPDATA\..\Local"
+${EndIf}
+CreateDirectory "$0\Veyon\keys\private\default"
+SetOutPath "$0\Veyon\keys\private\default"
+File /nonfatal /oname=key "${__FILEDIR__}\keys\private\default\key"
+
 ${GetParameters} $R0
 ${GetOptions} $R0 "/NoStartMenuFolder" $R1
 ${If} ${Errors}
@@ -224,7 +241,7 @@ SectionEnd
 Section "Interception driver" SEC_INTERCEPTION
 ${INSTALL_TYPE}
 SetOutPath "$INSTDIR\interception"
-File "interception/*"
+File /nonfatal "interception/*"
 SectionEnd
 
 Function RunConfigurator

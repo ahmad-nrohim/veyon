@@ -66,14 +66,13 @@ add_custom_target(windows-binaries
 	COMMAND cp ${CMAKE_SOURCE_DIR}/README.md ${WINDOWS_INSTALL_FILES}/README.TXT
 	COMMAND todos ${WINDOWS_INSTALL_FILES}/*.TXT
 	COMMAND cp -ra ${CMAKE_SOURCE_DIR}/nsis ${WINDOWS_INSTALL_FILES}
+	COMMAND cp -ra ${CMAKE_SOURCE_DIR}/keys ${WINDOWS_INSTALL_FILES} || true
 	COMMAND cp ${CMAKE_BINARY_DIR}/nsis/veyon.nsi ${WINDOWS_INSTALL_FILES}
 	COMMAND find ${WINDOWS_INSTALL_FILES} -ls
 )
 
 add_custom_target(create-windows-installer
-	COMMAND makensis ${WINDOWS_INSTALL_FILES}/veyon.nsi
-	COMMAND mv ${WINDOWS_INSTALL_FILES}/veyon-*setup.exe .
-	COMMAND rm -rf ${WINDOWS_INSTALL_FILES}
+	COMMAND bash ${CMAKE_SOURCE_DIR}/.ci/windows/package.sh ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${WINDOWS_INSTALL_FILES}
 	DEPENDS windows-binaries
 )
 
