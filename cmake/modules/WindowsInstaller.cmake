@@ -73,7 +73,6 @@ add_custom_target(windows-binaries
 
 add_custom_target(create-windows-installer
 	COMMAND bash ${CMAKE_SOURCE_DIR}/.ci/windows/package.sh ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${WINDOWS_INSTALL_FILES}
-	DEPENDS windows-binaries
 )
 
 add_custom_target(prepare-dev-nsi

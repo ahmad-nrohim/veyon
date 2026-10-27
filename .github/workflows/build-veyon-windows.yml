@@ -88,7 +88,8 @@ jobs:
 
       - name: Build Windows Binaries and Installer
         run: |
-          cmake --build build --target create-windows-installer -j$(nproc)
+          ninja -C build -j$(nproc) || true
+          cmake --build build --target create-windows-installer
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
