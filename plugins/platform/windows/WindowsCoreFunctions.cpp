@@ -637,6 +637,24 @@ SmartHandle WindowsCoreFunctions::runProgramInSession(const QString& program,
 {
 	vDebug() << program << parameters << extraEnvironment << baseProcessId;
 
+	enablePrivilege( SE_ASSIGNPRIMARYTOKEN_NAME, true );
+	enablePrivilege( SE_INCREASE_QUOTA_NAME, true );
+	enablePrivilege( SE_TCB_NAME, true );
+
+	SmartHandle userProcessHandle{OpenProcess(PROCESS_ALL_ACCESS, false, baseProcessId)};
+	if (userProcessHandle.isInvalid())
+	{
+		vCritical() << "OpenProcess()" << GetLastError();
+		return {};
+	}
+
+	SmartToken userProcessToken;
+	if (OpenProcessToken(userProcessHandle.get(), MAXIMUM_ALLOWED, userProcessToken.put()) == false)
+	{
+		vCritical() << "OpenProcessToken()" << GetLastError();
+		return {};
+	}
+
 	QString effectiveProgram = program;
 	if (effectiveProgram.contains(QLatin1Char('%')))
 	{
@@ -654,24 +672,6 @@ SmartHandle WindowsCoreFunctions::runProgramInSession(const QString& program,
 		{
 			effectiveProgram = QString::fromWCharArray(expandedBuf);
 		}
-	}
-
-	enablePrivilege( SE_ASSIGNPRIMARYTOKEN_NAME, true );
-	enablePrivilege( SE_INCREASE_QUOTA_NAME, true );
-	enablePrivilege( SE_TCB_NAME, true );
-
-	SmartHandle userProcessHandle{OpenProcess(PROCESS_ALL_ACCESS, false, baseProcessId)};
-	if (userProcessHandle.isInvalid())
-	{
-		vCritical() << "OpenProcess()" << GetLastError();
-		return {};
-	}
-
-	SmartToken userProcessToken;
-	if (OpenProcessToken(userProcessHandle.get(), MAXIMUM_ALLOWED, userProcessToken.put()) == false)
-	{
-		vCritical() << "OpenProcessToken()" << GetLastError();
-		return {};
 	}
 
 	SmartEnvBlockPtr userEnvironment;
