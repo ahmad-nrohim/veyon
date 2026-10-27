@@ -105,7 +105,11 @@ cp -f "${SOURCE_DIR}/README.md" "${INSTALL_FILES}/README.TXT" 2>/dev/null || tru
 mkdir -p "${INSTALL_FILES}/nsis"
 cp -rf "${SOURCE_DIR}/nsis/"* "${INSTALL_FILES}/nsis/" 2>/dev/null || true
 cp -rf "${SOURCE_DIR}/nsis/"* "${INSTALL_FILES}/" 2>/dev/null || true
-cp -f "${BINARY_DIR}/nsis/veyon.nsi" "${INSTALL_FILES}/" 2>/dev/null || true
+if [ -f "${BINARY_DIR}/nsis/veyon.nsi" ]; then
+    cp -f "${BINARY_DIR}/nsis/veyon.nsi" "${INSTALL_FILES}/" 2>/dev/null || true
+elif [ -f "${SOURCE_DIR}/nsis/veyon.nsi" ]; then
+    cp -f "${SOURCE_DIR}/nsis/veyon.nsi" "${INSTALL_FILES}/" 2>/dev/null || true
+fi
 
 echo "Staging completed. Running makensis..."
 cd "${INSTALL_FILES}"

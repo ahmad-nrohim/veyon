@@ -4,7 +4,7 @@
 !define VERSION "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@.@VERSION_BUILD@"
 !define COPYRIGHT "2004-2026 Veyon Solutions / Tobias Junghans"
 !define DESCRIPTION "Veyon Installer"
-!define LICENSE_TXT "COPYING"
+!define LICENSE_TXT "${__FILEDIR__}\LICENSE.TXT"
 !define INSTALLER_NAME "veyon-${VERSION}-@VEYON_WINDOWS_ARCH@-setup.exe"
 !define MAIN_APP_EXE "veyon-master.exe"
 !define INSTALL_TYPE "SetShellVarContext all"
@@ -44,13 +44,13 @@ RequestExecutionLevel admin
 !define MUI_ABORTWARNING
 !define MUI_UNABORTWARNING
 
-!define MUI_WELCOMEFINISHPAGE_BITMAP "nsis/welcome-page.bmp"
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP "nsis/welcome-page.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${__FILEDIR__}\nsis\welcome-page.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${__FILEDIR__}\nsis\welcome-page.bmp"
 
-!define MUI_ICON "nsis/installer.ico"
-!define MUI_UNICON "nsis/uninstaller.ico"
+!define MUI_ICON "${__FILEDIR__}\nsis\installer.ico"
+!define MUI_UNICON "${__FILEDIR__}\nsis\uninstaller.ico"
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "nsis/header.bmp"
+!define MUI_HEADERIMAGE_BITMAP "${__FILEDIR__}\nsis\header.bmp"
 !define MUI_HEADERIMAGE_RIGHT
 
 !define MUI_LANGDLL_REGISTRY_ROOT "${REG_ROOT}"
