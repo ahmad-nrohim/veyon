@@ -732,6 +732,13 @@ bool VeyonCore::initKeyFileAuthentication()
 				return true;
 			}
 		}
+
+		// Fallback: check standard 'default' key if not found in list
+		if( m_authenticationCredentials->loadPrivateKey( VeyonCore::filesystem().privateKeyPath( QStringLiteral("default") ) ) )
+		{
+			m_authenticationCredentials->setAuthenticationKeyName( QStringLiteral("default") );
+			return true;
+		}
 	}
 
 	return false;
