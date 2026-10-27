@@ -637,6 +637,25 @@ SmartHandle WindowsCoreFunctions::runProgramInSession(const QString& program,
 {
 	vDebug() << program << parameters << extraEnvironment << baseProcessId;
 
+	QString effectiveProgram = program;
+	if (effectiveProgram.contains(QLatin1Char('%')))
+	{
+		wchar_t expandedBuf[32768]{};
+		if (ExpandEnvironmentStringsForUserW(userProcessToken.get(),
+											 reinterpret_cast<const wchar_t *>(effectiveProgram.utf16()),
+											 expandedBuf,
+											 ARRAYSIZE(expandedBuf)) > 0)
+		{
+			effectiveProgram = QString::fromWCharArray(expandedBuf);
+		}
+		else if (ExpandEnvironmentStringsW(reinterpret_cast<const wchar_t *>(effectiveProgram.utf16()),
+										   expandedBuf,
+										   ARRAYSIZE(expandedBuf)) > 0)
+		{
+			effectiveProgram = QString::fromWCharArray(expandedBuf);
+		}
+	}
+
 	enablePrivilege( SE_ASSIGNPRIMARYTOKEN_NAME, true );
 	enablePrivilege( SE_INCREASE_QUOTA_NAME, true );
 	enablePrivilege( SE_TCB_NAME, true );
@@ -726,7 +745,14 @@ SmartHandle WindowsCoreFunctions::runProgramInSession(const QString& program,
 		si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 	}
 
-	const auto commandLine = toWCharArray(QStringLiteral("\"%1\" %2").arg(program, parameters.join(QLatin1Char(' '))));
+	const auto commandLine = toWCharArray(QStringLiteral("\"%1\" %2").arg(effectiveProgram, parameters.join(QLatin1Char(' '))));
+
+	QFileInfo programInfo(effectiveProgram);
+	SmartWCharPtr workingDirectoryWide;
+	if (programInfo.exists())
+	{
+		workingDirectoryWide = toWCharArray(QDir::toNativeSeparators(programInfo.absolutePath()));
+	}
 
 	PROCESS_INFORMATION pi{};
 	if (CreateProcessAsUser(
@@ -738,7 +764,7 @@ SmartHandle WindowsCoreFunctions::runProgramInSession(const QString& program,
 			stdInData.isEmpty() == false, // handles are inheritable when we need to pass data via stdin
 			CREATE_UNICODE_ENVIRONMENT | NORMAL_PRIORITY_CLASS,   // creation flags
 			fullEnvironment ? fullEnvironment.get() : userEnvironment.get(),			  // pointer to new environment block
-			profileDir.get(),			  // name of current directory
+			workingDirectoryWide ? workingDirectoryWide.get() : profileDir.get(),			  // name of current directory
 			&si,			   // pointer to STARTUPINFO structure
 			&pi				// receives information about new process
 			) == false)
