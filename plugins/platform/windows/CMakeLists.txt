@@ -67,6 +67,9 @@ target_include_directories(windows-platform PRIVATE
 	${ultravnc_DIR}
 	)
 
+target_include_directories(windows-platform PRIVATE ${CMAKE_SOURCE_DIR}/3rdparty/interception)
+target_link_directories(windows-platform PRIVATE ${CMAKE_SOURCE_DIR}/3rdparty/interception)
+target_compile_options(windows-platform PRIVATE -Wno-unused-but-set-variable)
 target_link_libraries(windows-platform PRIVATE -lws2_32 -lwtsapi32 -lnetapi32 -luserenv -limm32 -lntdll -linterception -liphlpapi -lsetupapi -lsecur32)
 target_link_libraries(windows-platform PRIVATE Qt6::GuiPrivate)
 target_compile_definitions(windows-platform PRIVATE ULTRAVNC_VEYON_SUPPORT)

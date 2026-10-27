@@ -1,0 +1,16 @@
+LIBRARY interception.dll
+EXPORTS
+interception_create_context
+interception_destroy_context
+interception_get_precedence
+interception_set_precedence
+interception_get_filter
+interception_set_filter
+interception_wait
+interception_wait_with_timeout
+interception_send
+interception_receive
+interception_get_hardware_id
+interception_is_invalid
+interception_is_keyboard
+interception_is_mouse
