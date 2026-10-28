@@ -152,13 +152,9 @@ ClearErrors
 # Stop service and terminate running processes to prevent file locking ("Error opening file for writing")
 nsExec::Exec 'net stop VeyonService'
 nsExec::Exec 'sc stop VeyonService'
+nsExec::Exec 'sc delete VeyonService'
 nsExec::Exec 'taskkill /F /IM veyon-service.exe /IM veyon-server.exe /IM veyon-worker.exe /IM veyon-master.exe /IM veyon-configurator.exe /IM veyon-cli.exe /IM veyon-wcli.exe /T'
 Sleep 1000
-
-ExecWait '"$INSTDIR\veyon-wcli.exe" service unregister'
-${If} $0 != 0
-  ExecWait '"$INSTDIR\veyon-ctl.exe" service unregister'
-${EndIf}
 Delete "$INSTDIR\*.dll"
 Delete "$INSTDIR\*.exe"
 Delete "$INSTDIR\plugins\*.dll"
@@ -312,12 +308,12 @@ SectionEnd
 Section Uninstall
 ${INSTALL_TYPE}
 
-ExecWait '"$INSTDIR\veyon-wcli.exe" config set Service/SoftwareSASEnabled 0'
-ExecWait '"$INSTDIR\veyon-wcli.exe" config set Network/FirewallExceptionEnabled 0'
-ExecWait '"$INSTDIR\veyon-wcli.exe" service unregister'
+nsExec::Exec 'net stop VeyonService'
+nsExec::Exec 'sc stop VeyonService'
+nsExec::Exec 'sc delete VeyonService'
+nsExec::Exec 'taskkill /F /IM veyon-service.exe /IM veyon-server.exe /IM veyon-worker.exe /IM veyon-master.exe /IM veyon-configurator.exe /IM veyon-cli.exe /IM veyon-wcli.exe /T'
 ExecWait '"$INSTDIR\interception\install-interception.exe" /uninstall'
-# make sure the service is stopped and all file handles are released
-Sleep 2000
+Sleep 1000
 
 ${GetParameters} $R0
 ${GetOptions} $R0 "/ClearConfig" $R1
