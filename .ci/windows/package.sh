@@ -45,9 +45,9 @@ find "${BINARY_DIR}" -mindepth 2 -name 'veyon-*.exe' -exec cp -f {} "${INSTALL_F
 # Plugins
 mkdir -p "${INSTALL_FILES}/plugins"
 find "${BINARY_DIR}/plugins" -name '*.dll' -exec cp -f {} "${INSTALL_FILES}/plugins/" \; 2>/dev/null || true
-# Copy lib*.dll to root as well for loader resolution
-cp -f "${INSTALL_FILES}/plugins/"lib*.dll "${INSTALL_FILES}/" 2>/dev/null || true
-cp -f "${INSTALL_FILES}/plugins/vnchooks.dll" "${INSTALL_FILES}/" 2>/dev/null || true
+# Copy lib*.dll, vnchooks.dll, and built helper libraries to root as well for loader resolution
+find "${BINARY_DIR}" -name 'vnchooks*.dll' -exec cp -f {} "${INSTALL_FILES}/" \; 2>/dev/null || true
+find "${BINARY_DIR}" -name 'lib*.dll' -exec cp -f {} "${INSTALL_FILES}/" \; 2>/dev/null || true
 
 # Translations
 mkdir -p "${INSTALL_FILES}/translations"
@@ -70,31 +70,37 @@ if [ -d "${SOURCE_DIR}/keys" ]; then
     cp -rf "${SOURCE_DIR}/keys/"* "${INSTALL_FILES}/keys/" 2>/dev/null || true
 fi
 
-# Runtime DLLs
-for dll in libjpeg-62.dll libpng16-16.dll libcrypto-3*.dll libssl-3*.dll libqca-qt6.dll libsasl2-3.dll libldap.dll liblber.dll interception.dll liblzo2-2.dll libvncclient.dll libvncserver.dll zlib1.dll libwinpthread-1.dll libstdc++-6.dll libssp-0.dll libgcc_s_seh-1.dll libgcc_s_dw2-1.dll; do
-    find "${DLLDIR}" "${DLLDIR_LIB}" -name "$dll" -exec cp -f {} "${INSTALL_FILES}/" \; 2>/dev/null || true
-done
+# Qt Plugins
+mkdir -p "${INSTALL_FILES}/crypto"
+find "${MINGW_PREFIX}/lib/qca-qt6" "${MINGW_PREFIX}" -name 'libqca-ossl.dll' -exec cp -f {} "${INSTALL_FILES}/crypto/" \; 2>/dev/null || true
+
+mkdir -p "${INSTALL_FILES}/imageformats"
+find "${MINGW_PREFIX}/share/qt6/plugins/imageformats" "${MINGW_PREFIX}" -name 'qjpeg.dll' -exec cp -f {} "${INSTALL_FILES}/imageformats/" \; 2>/dev/null || true
+
+mkdir -p "${INSTALL_FILES}/platforms"
+find "${MINGW_PREFIX}/share/qt6/plugins/platforms" "${MINGW_PREFIX}" -name 'qwindows.dll' -exec cp -f {} "${INSTALL_FILES}/platforms/" \; 2>/dev/null || true
+
+mkdir -p "${INSTALL_FILES}/styles"
+find "${MINGW_PREFIX}/share/qt6/plugins/styles" "${MINGW_PREFIX}" -name 'qwindowsvistastyle.dll' -exec cp -f {} "${INSTALL_FILES}/styles/" \; 2>/dev/null || true
+
+mkdir -p "${INSTALL_FILES}/tls"
+find "${MINGW_PREFIX}/share/qt6/plugins/tls" "${MINGW_PREFIX}" -name 'qopensslbackend.dll' -exec cp -f {} "${INSTALL_FILES}/tls/" \; 2>/dev/null || true
+
+# Verify critical platform plugin
+if [ ! -f "${INSTALL_FILES}/platforms/qwindows.dll" ]; then
+    echo "ERROR: platforms/qwindows.dll was not found in ${MINGW_PREFIX}!"
+    exit 1
+fi
 
 # Qt6 Core DLLs
 for qtdll in Qt6Core.dll Qt6Core5Compat.dll Qt6Gui.dll Qt6Widgets.dll Qt6Network.dll Qt6Concurrent.dll Qt6HttpServer.dll Qt6WebSockets.dll; do
     find "${DLLDIR}" -name "$qtdll" -exec cp -f {} "${INSTALL_FILES}/" \; 2>/dev/null || true
 done
 
-# Qt Plugins
-mkdir -p "${INSTALL_FILES}/crypto"
-find "${DLLDIR_LIB}/qca-qt6/crypto" "${MINGW_PREFIX}/lib/qca-qt6/crypto" -name 'libqca-ossl.dll' -exec cp -f {} "${INSTALL_FILES}/crypto/" \; 2>/dev/null || true
-
-mkdir -p "${INSTALL_FILES}/imageformats"
-find "${MINGW_PREFIX}/share/qt6/plugins/imageformats" "${MINGW_PREFIX}/plugins/imageformats" -name 'qjpeg.dll' -exec cp -f {} "${INSTALL_FILES}/imageformats/" \; 2>/dev/null || true
-
-mkdir -p "${INSTALL_FILES}/platforms"
-find "${MINGW_PREFIX}/share/qt6/plugins/platforms" "${MINGW_PREFIX}/plugins/platforms" -name 'qwindows.dll' -exec cp -f {} "${INSTALL_FILES}/platforms/" \; 2>/dev/null || true
-
-mkdir -p "${INSTALL_FILES}/styles"
-find "${MINGW_PREFIX}/share/qt6/plugins/styles" "${MINGW_PREFIX}/plugins/styles" -name '*.dll' -exec cp -f {} "${INSTALL_FILES}/styles/" \; 2>/dev/null || true
-
-mkdir -p "${INSTALL_FILES}/tls"
-find "${MINGW_PREFIX}/share/qt6/plugins/tls" "${MINGW_PREFIX}/plugins/tls" -name 'qopensslbackend.dll' -exec cp -f {} "${INSTALL_FILES}/tls/" \; 2>/dev/null || true
+# Run automated recursive dependency resolver & auditor
+echo "Resolving all runtime DLL dependencies recursively..."
+PYTHON_BIN=$(which python3 2>/dev/null || which python 2>/dev/null || echo "python")
+"$PYTHON_BIN" "${SOURCE_DIR}/.ci/windows/deploy_dependencies.py" "${INSTALL_FILES}" "${MINGW_PREFIX}"
 
 # Licenses
 cp -f "${SOURCE_DIR}/COPYING" "${INSTALL_FILES}/COPYING" 2>/dev/null || true

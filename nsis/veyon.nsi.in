@@ -160,35 +160,35 @@ RmDir /r "$INSTDIR\translations"
 SetOverwrite on
 SetOutPath "$INSTDIR"
 # core components
-File "veyon-server.exe"
-File "veyon-service.exe"
-File "veyon-configurator.exe"
-File "veyon-cli.exe"
-File "veyon-wcli.exe"
-File "veyon-worker.exe"
-File "*.dll"
-File "LICENSE.TXT"
-File "README.TXT"
+File "${__FILEDIR__}\veyon-server.exe"
+File "${__FILEDIR__}\veyon-service.exe"
+File "${__FILEDIR__}\veyon-configurator.exe"
+File "${__FILEDIR__}\veyon-cli.exe"
+File "${__FILEDIR__}\veyon-wcli.exe"
+File "${__FILEDIR__}\veyon-worker.exe"
+File "${__FILEDIR__}\*.dll"
+File "${__FILEDIR__}\LICENSE.TXT"
+File "${__FILEDIR__}\README.TXT"
 # plugins
 SetOutPath "$INSTDIR\plugins"
-File /nonfatal "plugins/*.dll"
+File "${__FILEDIR__}\plugins\*.dll"
 # translations
 SetOutPath "$INSTDIR\translations"
-File /nonfatal "translations/*.qm"
+File "${__FILEDIR__}\translations\*.qm"
 # QCA plugins
 SetOutPath "$INSTDIR\crypto"
-File /nonfatal "crypto/*.dll"
+File /nonfatal "${__FILEDIR__}\crypto\*.dll"
 # Qt image format plugin
 SetOutPath "$INSTDIR\imageformats"
-File /nonfatal "imageformats/qjpeg.dll"
+File /nonfatal "${__FILEDIR__}\imageformats\qjpeg.dll"
 # Qt platform plugin
 SetOutPath "$INSTDIR\platforms"
-File /nonfatal "platforms/qwindows.dll"
+File "${__FILEDIR__}\platforms\qwindows.dll"
 SetOutPath "$INSTDIR\styles"
-File /nonfatal "styles/*.dll"
+File /nonfatal "${__FILEDIR__}\styles\*.dll"
 # Qt TLS backend
 SetOutPath "$INSTDIR\tls"
-File /nonfatal "tls/qopensslbackend.dll"
+File /nonfatal "${__FILEDIR__}\tls\qopensslbackend.dll"
 # deploy built-in pre-synchronized default public key for service
 ReadEnvStr $0 ProgramData
 ${If} $0 == ""
@@ -218,7 +218,7 @@ SectionEnd
 Section "Veyon Master" SEC_MASTER
 ${INSTALL_TYPE}
 SetOutPath "$INSTDIR"
-File "veyon-master.exe"
+File "${__FILEDIR__}\veyon-master.exe"
 
 # deploy built-in pre-synchronized default private key for master
 ReadEnvStr $0 ProgramData
@@ -241,7 +241,7 @@ SectionEnd
 Section "Interception driver" SEC_INTERCEPTION
 ${INSTALL_TYPE}
 SetOutPath "$INSTDIR\interception"
-File /nonfatal "interception/*"
+File /nonfatal "${__FILEDIR__}\interception\*"
 SectionEnd
 
 Function RunConfigurator
