@@ -148,6 +148,13 @@ Section "Veyon Service" SEC_SERVICE
 SectionIn RO
 ${INSTALL_TYPE}
 ClearErrors
+
+# Stop service and terminate running processes to prevent file locking ("Error opening file for writing")
+nsExec::Exec 'net stop VeyonService'
+nsExec::Exec 'sc stop VeyonService'
+nsExec::Exec 'taskkill /F /IM veyon-service.exe /IM veyon-server.exe /IM veyon-worker.exe /IM veyon-master.exe /IM veyon-configurator.exe /IM veyon-cli.exe /IM veyon-wcli.exe /T'
+Sleep 1000
+
 ExecWait '"$INSTDIR\veyon-wcli.exe" service unregister'
 ${If} $0 != 0
   ExecWait '"$INSTDIR\veyon-ctl.exe" service unregister'
@@ -268,6 +275,11 @@ ${If} $0 != "admin"
 	SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
 	Quit
 ${EndIf}
+
+# Pre-emptively stop running services/processes to ensure smooth in-place upgrade
+nsExec::Exec 'net stop VeyonService'
+nsExec::Exec 'sc stop VeyonService'
+nsExec::Exec 'taskkill /F /IM veyon-service.exe /IM veyon-server.exe /IM veyon-worker.exe /IM veyon-master.exe /IM veyon-configurator.exe /IM veyon-cli.exe /IM veyon-wcli.exe /T'
 FunctionEnd
 
 ######################################################################
@@ -343,6 +355,17 @@ SectionEnd
 ######################################################################
 
 Function un.onInit
+UserInfo::GetAccountType
+pop $0
+${If} $0 != "admin"
+	MessageBox mb_iconstop "Please run the uninstaller with administrative rights!"
+	SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
+	Quit
+${EndIf}
+nsExec::Exec 'net stop VeyonService'
+nsExec::Exec 'sc stop VeyonService'
+nsExec::Exec 'taskkill /F /IM veyon-service.exe /IM veyon-server.exe /IM veyon-worker.exe /IM veyon-master.exe /IM veyon-configurator.exe /IM veyon-cli.exe /IM veyon-wcli.exe /T'
+Sleep 1000
 !insertmacro MUI_UNGETLANGUAGE
 FunctionEnd
 

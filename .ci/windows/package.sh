@@ -31,6 +31,9 @@ DLLDIR_LIB="${MINGW_PREFIX}/lib"
 mkdir -p "${INSTALL_FILES}/interception"
 if [ -d "${SOURCE_DIR}/3rdparty/interception" ]; then
     cp -f "${SOURCE_DIR}/3rdparty/interception/"* "${INSTALL_FILES}/interception/" 2>/dev/null || true
+    if [ -f "${SOURCE_DIR}/3rdparty/interception/interception.dll" ]; then
+        cp -f "${SOURCE_DIR}/3rdparty/interception/interception.dll" "${INSTALL_FILES}/"
+    fi
 fi
 
 # DDEngine
