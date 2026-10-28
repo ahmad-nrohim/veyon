@@ -24,7 +24,7 @@ WINDOWS_SYSTEM_DLLS = {
     'powrprof.dll', 'profapi.dll', 'kernelbase.dll', 'msvcp_win.dll',
     'ucrtbase.dll', 'shcore.dll', 'opengl32.dll', 'glu32.dll', 'winspool.drv',
     'dbghelp.dll', 'avrt.dll', 'hid.dll', 'usp10.dll', 'd3d9.dll', 'dxva2.dll',
-    'mscms.dll'
+    'mscms.dll', 'authz.dll', 'mpr.dll', 'd3d12.dll', 'winhttp.dll'
 }
 
 def is_system_dll(dll_name):
