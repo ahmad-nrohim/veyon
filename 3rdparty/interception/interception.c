@@ -267,7 +267,7 @@ int interception_receive(InterceptionContext context, InterceptionDevice device,
             rawstrokes[i].ExtraInformation = key_stroke[i].information;
         }
 
-        DeviceIoControl(device_array[device - 1].handle, IOCTL_READ, rawstrokes, (DWORD)nstroke * sizeof(KEYBOARD_INPUT_DATA), &strokesread, NULL);
+        DeviceIoControl(device_array[device - 1].handle, IOCTL_READ, NULL, 0, rawstrokes, (DWORD)nstroke * sizeof(KEYBOARD_INPUT_DATA), &strokesread, NULL);
 
         strokesread /= sizeof(KEYBOARD_INPUT_DATA);
 
@@ -289,7 +289,7 @@ int interception_receive(InterceptionContext context, InterceptionDevice device,
 
         if(!rawstrokes) return 0;
 
-        DeviceIoControl(device_array[device - 1].handle, IOCTL_READ, rawstrokes, (DWORD)nstroke * sizeof(MOUSE_INPUT_DATA), &strokesread, NULL);
+        DeviceIoControl(device_array[device - 1].handle, IOCTL_READ, NULL, 0, rawstrokes, (DWORD)nstroke * sizeof(MOUSE_INPUT_DATA), &strokesread, NULL);
 
         strokesread /= sizeof(MOUSE_INPUT_DATA);
 
