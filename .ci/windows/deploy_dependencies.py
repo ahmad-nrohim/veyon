@@ -23,7 +23,8 @@ WINDOWS_SYSTEM_DLLS = {
     'pdh.dll', 'sensapi.dll', 'propsys.dll', 'cryptbase.dll', 'sspicli.dll',
     'powrprof.dll', 'profapi.dll', 'kernelbase.dll', 'msvcp_win.dll',
     'ucrtbase.dll', 'shcore.dll', 'opengl32.dll', 'glu32.dll', 'winspool.drv',
-    'dbghelp.dll', 'avrt.dll', 'hid.dll'
+    'dbghelp.dll', 'avrt.dll', 'hid.dll', 'usp10.dll', 'd3d9.dll', 'dxva2.dll',
+    'mscms.dll'
 }
 
 def is_system_dll(dll_name):

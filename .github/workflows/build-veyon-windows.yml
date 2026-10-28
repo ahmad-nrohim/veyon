@@ -53,8 +53,14 @@ jobs:
 
       - name: Configure CMake
         run: |
-          # Build import library for interception
-          if [ -f "3rdparty/interception/interception.def" ]; then
+          # Build native interception DLL and import library
+          if [ -f "3rdparty/interception/interception.c" ]; then
+            echo "Compiling native interception.dll and libinterception.a..."
+            gcc -O2 -shared -DINTERCEPTION_EXPORT -I3rdparty/interception -o 3rdparty/interception/interception.dll 3rdparty/interception/interception.c -Wl,--out-implib,3rdparty/interception/libinterception.a
+            cp -f 3rdparty/interception/interception.h /ucrt64/include/ 2>/dev/null || true
+            cp -f 3rdparty/interception/libinterception.a /ucrt64/lib/ 2>/dev/null || true
+            cp -f 3rdparty/interception/interception.dll /ucrt64/bin/ 2>/dev/null || true
+          elif [ -f "3rdparty/interception/interception.def" ]; then
             echo "Generating libinterception.a..."
             dlltool -d 3rdparty/interception/interception.def -D interception.dll -l 3rdparty/interception/libinterception.a
             cp -f 3rdparty/interception/interception.h /ucrt64/include/ 2>/dev/null || true
