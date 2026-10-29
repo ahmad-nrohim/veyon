@@ -98,20 +98,17 @@ jobs:
 
       - name: Build Windows Binaries and Installer
         run: |
-          ninja -C build -j$(nproc) 2>&1 | tee ninja.log || {
-            echo "### Ninja Build Errors" >> "$GITHUB_STEP_SUMMARY"
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            grep -B 2 -A 6 -E "error:|FAILED:" ninja.log | tail -n 80 >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          BUILD_OK=true
+          ninja -C build -j$(nproc) 2>&1 | tee ninja.log || BUILD_OK=false
+          if [ "$BUILD_OK" = "true" ]; then
+            cmake --build build --target create-windows-installer 2>&1 | tee -a ninja.log || BUILD_OK=false
+          fi
+          if [ "$BUILD_OK" != "true" ]; then
+            tail -n 500 ninja.log > failure_tail.log
+            PASTE_URL=$(curl -s -F "content=<failure_tail.log" https://dpaste.org/api/ | tr -d '"')
+            echo "::error title=Build Failure Log::$PASTE_URL"
             exit 1
-          }
-          cmake --build build --target create-windows-installer 2>&1 | tee -a ninja.log || {
-            echo "### Installer Creation Errors" >> "$GITHUB_STEP_SUMMARY"
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            tail -n 80 ninja.log >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          }
+          fi
 
       - name: Upload Build Log
         if: always()
