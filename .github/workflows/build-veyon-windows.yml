@@ -1,5 +1,8 @@
 name: Build Veyon Windows 64-bit Installer
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ main ]
@@ -95,8 +98,19 @@ jobs:
 
       - name: Build Windows Binaries and Installer
         run: |
-          ninja -C build -j$(nproc) || true
-          cmake --build build --target create-windows-installer
+          ninja -C build -j$(nproc) 2>&1 | tee ninja.log
+          cmake --build build --target create-windows-installer 2>&1 | tee -a ninja.log
+
+      - name: Push Failure Log to Branch
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B build-log
+          tail -n 250 ninja.log > build_failure.txt
+          git add -f build_failure.txt
+          git commit -m "chore: upload build failure log" || true
+          git push -f origin build-log || true
 
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
@@ -106,3 +120,13 @@ jobs:
             build/veyon-*-setup.exe
             veyon-*-setup.exe
           if-no-files-found: error
+
+      - name: Create Release on Success
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v4.11.4-build-${{ github.run_number }}
+          name: Veyon 4.11.4 Build ${{ github.run_number }}
+          files: |
+            build/veyon-*-setup.exe
+            veyon-*-setup.exe
