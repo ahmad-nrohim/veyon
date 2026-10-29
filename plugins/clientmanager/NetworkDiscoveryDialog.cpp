@@ -10,6 +10,7 @@
 #include "NetworkObject.h"
 #include "ObjectManager.h"
 #include "ConfigurationManager.h"
+#include "VeyonConfiguration.h"
 #include "VeyonCore.h"
 
 #include <QNetworkInterface>
