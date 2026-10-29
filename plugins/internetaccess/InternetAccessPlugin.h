@@ -12,7 +12,7 @@
 #include "FeatureProviderInterface.h"
 #include "PluginInterface.h"
 
-class InternetAccessPlugin : public QObject, FeatureProviderInterface, PluginInterface
+class InternetAccessPlugin : public QObject, public FeatureProviderInterface, public PluginInterface
 {
 	Q_OBJECT
 	Q_PLUGIN_METADATA(IID "io.veyon.Veyon.Plugins.InternetAccess")

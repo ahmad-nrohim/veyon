@@ -17,7 +17,7 @@
 class AppManagerDialog;
 class HardwareInfoDialog;
 
-class ClientManagerPlugin : public QObject, FeatureProviderInterface, PluginInterface
+class ClientManagerPlugin : public QObject, public FeatureProviderInterface, public PluginInterface
 {
 	Q_OBJECT
 	Q_PLUGIN_METADATA(IID "io.veyon.Veyon.Plugins.ClientManager")

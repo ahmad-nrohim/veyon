@@ -17,61 +17,75 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QProcess>
+#include <QSettings>
+#include <QHostInfo>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
-#include <psapi.h>
+
+static BOOL CALLBACK enumWindowsCallback( HWND hwnd, LPARAM lParam )
+{
+	if( !IsWindowVisible( hwnd ) )
+	{
+		return TRUE;
+	}
+	if( GetWindowTextLengthW( hwnd ) == 0 )
+	{
+		return TRUE;
+	}
+
+	const LONG exStyle = GetWindowLongW( hwnd, GWL_EXSTYLE );
+	if( exStyle & WS_EX_TOOLWINDOW )
+	{
+		return TRUE;
+	}
+
+	wchar_t title[512] = {0};
+	GetWindowTextW( hwnd, title, 512 );
+
+	DWORD pid = 0;
+	GetWindowThreadProcessId( hwnd, &pid );
+	if( pid == 0 )
+	{
+		return TRUE;
+	}
+
+	HANDLE hProc = OpenProcess( PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid );
+	wchar_t path[MAX_PATH] = {0};
+	DWORD size = MAX_PATH;
+	if( hProc )
+	{
+		QueryFullProcessImageNameW( hProc, 0, path, &size );
+		CloseHandle( hProc );
+	}
+
+	QString pName = QFileInfo( QString::fromWCharArray( path ) ).fileName();
+	if( pName.isEmpty() )
+	{
+		pName = QString::number( pid );
+	}
+
+	if( pName.compare( QStringLiteral("explorer.exe"), Qt::CaseInsensitive ) == 0 &&
+		QString::fromWCharArray( title ) == QStringLiteral("Program Manager") )
+	{
+		return TRUE;
+	}
+
+	QVariantMap item;
+	item[QStringLiteral("pid")] = static_cast<qlonglong>( pid );
+	item[QStringLiteral("process")] = pName;
+	item[QStringLiteral("title")] = QString::fromWCharArray( title );
+
+	auto* list = reinterpret_cast<QVariantList*>( lParam );
+	list->append( item );
+
+	return TRUE;
+}
 
 static QVariantList queryRunningApps()
 {
 	QVariantList appList;
-
-	EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL {
-		if (!IsWindowVisible(hwnd)) return TRUE;
-		if (GetWindowTextLengthW(hwnd) == 0) return TRUE;
-
-		LONG exStyle = GetWindowLongW(hwnd, GWL_EXSTYLE);
-		if (exStyle & WS_EX_TOOLWINDOW) return TRUE;
-
-		wchar_t title[512] = {0};
-		GetWindowTextW(hwnd, title, 512);
-
-		DWORD pid = 0;
-		GetWindowThreadProcessId(hwnd, &pid);
-		if (pid == 0) return TRUE;
-
-		HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-		wchar_t path[MAX_PATH] = {0};
-		DWORD size = MAX_PATH;
-		if (hProc)
-		{
-			QueryFullProcessImageNameW(hProc, 0, path, &size);
-			CloseHandle(hProc);
-		}
-
-		QString pName = QFileInfo(QString::fromWCharArray(path)).fileName();
-		if (pName.isEmpty())
-		{
-			pName = QString::number(pid);
-		}
-
-		if (pName.compare(QStringLiteral("explorer.exe"), Qt::CaseInsensitive) == 0 &&
-			QString::fromWCharArray(title) == QStringLiteral("Program Manager"))
-		{
-			return TRUE;
-		}
-
-		QVariantMap item;
-		item[QStringLiteral("pid")] = static_cast<qlonglong>(pid);
-		item[QStringLiteral("process")] = pName;
-		item[QStringLiteral("title")] = QString::fromWCharArray(title);
-
-		auto* list = reinterpret_cast<QVariantList*>(lParam);
-		list->append(item);
-
-		return TRUE;
-	}, reinterpret_cast<LPARAM>(&appList));
-
+	EnumWindows( enumWindowsCallback, reinterpret_cast<LPARAM>( &appList ) );
 	return appList;
 }
 
@@ -98,22 +112,10 @@ static QVariantMap queryHardwareInfo()
 {
 	QVariantMap info;
 
-	wchar_t compName[MAX_COMPUTERNAME_LENGTH + 1] = {0};
-	DWORD compSize = MAX_COMPUTERNAME_LENGTH + 1;
-	GetComputerNameW(compName, &compSize);
-	info[QStringLiteral("hostname")] = QString::fromWCharArray(compName);
+	info[QStringLiteral("hostname")] = QHostInfo::localHostName();
 
-	HKEY hKey;
-	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
-	{
-		wchar_t cpuName[256] = {0};
-		DWORD dataSize = sizeof(cpuName);
-		if (RegQueryValueExW(hKey, L"ProcessorNameString", nullptr, nullptr, reinterpret_cast<LPBYTE>(cpuName), &dataSize) == ERROR_SUCCESS)
-		{
-			info[QStringLiteral("cpu")] = QString::fromWCharArray(cpuName).trimmed();
-		}
-		RegCloseKey(hKey);
-	}
+	const QSettings regCpu( QStringLiteral("HKEY_LOCAL_MACHINE\\HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0"), QSettings::NativeFormat );
+	info[QStringLiteral("cpu")] = regCpu.value( QStringLiteral("ProcessorNameString") ).toString().trimmed();
 
 	MEMORYSTATUSEX memStatus;
 	memStatus.dwLength = sizeof(memStatus);
@@ -130,24 +132,14 @@ static QVariantMap queryHardwareInfo()
 		info[QStringLiteral("diskFreeGB")] = static_cast<qlonglong>(totalFreeBytes.QuadPart / (1024ULL * 1024ULL * 1024ULL));
 	}
 
-	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+	const QSettings regOs( QStringLiteral("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), QSettings::NativeFormat );
+	QString osStr = regOs.value( QStringLiteral("ProductName") ).toString();
+	const QString dispVer = regOs.value( QStringLiteral("DisplayVersion") ).toString();
+	if (!dispVer.isEmpty())
 	{
-		wchar_t prodName[256] = {0};
-		DWORD dataSize = sizeof(prodName);
-		if (RegQueryValueExW(hKey, L"ProductName", nullptr, nullptr, reinterpret_cast<LPBYTE>(prodName), &dataSize) == ERROR_SUCCESS)
-		{
-			wchar_t dispVer[64] = {0};
-			DWORD dispSize = sizeof(dispVer);
-			RegQueryValueExW(hKey, L"DisplayVersion", nullptr, nullptr, reinterpret_cast<LPBYTE>(dispVer), &dispSize);
-			QString osStr = QString::fromWCharArray(prodName);
-			if (wcslen(dispVer) > 0)
-			{
-				osStr += QStringLiteral(" ") + QString::fromWCharArray(dispVer);
-			}
-			info[QStringLiteral("os")] = osStr;
-		}
-		RegCloseKey(hKey);
+		osStr += QStringLiteral(" ") + dispVer;
 	}
+	info[QStringLiteral("os")] = osStr;
 
 	ULONGLONG ticks = GetTickCount64();
 	info[QStringLiteral("uptimeSec")] = static_cast<qlonglong>(ticks / 1000);

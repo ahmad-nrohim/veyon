@@ -85,7 +85,7 @@ void AppManagerDialog::refreshApps()
 
 void AppManagerDialog::handleAppListResponse( ComputerControlInterface::Pointer iface, const QVariantList& apps )
 {
-	const QString compName = iface ? iface->hostAddress() : tr( "Klien" );
+	const QString compName = iface ? iface->computerName() : tr( "Klien" );
 
 	for( const auto& appVar : apps )
 	{

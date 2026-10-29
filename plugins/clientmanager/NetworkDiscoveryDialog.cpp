@@ -257,7 +257,7 @@ void NetworkDiscoveryDialog::addDiscoveredToLab()
 	}
 
 	// Access Veyon's stored NetworkObjects
-	const auto jsonArray = VeyonCore::config().value( QStringLiteral("NetworkObjects"), QStringLiteral("BuiltinDirectory") ).toJsonArray();
+	const auto jsonArray = VeyonCore::config().value( QStringLiteral("NetworkObjects"), QStringLiteral("BuiltinDirectory"), QJsonArray() ).toJsonArray();
 	ObjectManager<NetworkObject> objectManager( jsonArray );
 
 	// Find or create default location "Lab TKJ"
@@ -274,7 +274,7 @@ void NetworkDiscoveryDialog::addDiscoveredToLab()
 
 	if( labLocation.uid().isNull() )
 	{
-		labLocation = NetworkObject( NetworkObject::Type::Location, QStringLiteral("Lab TKJ") );
+		labLocation = NetworkObject( NetworkObject::Type::Location, QStringLiteral("Lab TKJ"), {}, {}, {}, QUuid::createUuid() );
 		objectManager.add( labLocation );
 	}
 
@@ -295,7 +295,7 @@ void NetworkDiscoveryDialog::addDiscoveredToLab()
 		if( !exists )
 		{
 			const QString pcName = host.hostname.isEmpty() ? host.ip : host.hostname;
-			objectManager.add( NetworkObject( NetworkObject::Type::Host, pcName, host.ip, QString(), labLocation.uid() ) );
+			objectManager.add( NetworkObject( NetworkObject::Type::Host, pcName, host.ip, {}, {}, QUuid::createUuid(), labLocation.uid() ) );
 			++addedCount;
 		}
 	}

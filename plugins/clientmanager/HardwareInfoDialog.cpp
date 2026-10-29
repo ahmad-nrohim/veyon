@@ -74,7 +74,7 @@ void HardwareInfoDialog::refreshInfo()
 
 void HardwareInfoDialog::handleHardwareInfoResponse( ComputerControlInterface::Pointer iface, const QVariantMap& info )
 {
-	const QString compName = iface ? iface->hostAddress() : tr( "Klien" );
+	const QString compName = iface ? iface->computerName() : tr( "Klien" );
 	const QString hostname = info.value( QStringLiteral("hostname") ).toString();
 	const QString label = hostname.isEmpty() ? compName : QStringLiteral( "%1 (%2)" ).arg( compName, hostname );
 
