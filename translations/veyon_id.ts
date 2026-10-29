@@ -4032,16 +4032,16 @@ Please save your work and close all programs.</source>
         <translation type="unfinished"/>
     </message>
     <message>
-        <source>Lock input devices</source>
-        <translation type="unfinished"/>
+        <source>Lock input</source>
+        <translation>Kunci Input</translation>
     </message>
     <message>
-        <source>Unlock input devices</source>
-        <translation type="unfinished"/>
+        <source>Unlock input</source>
+        <translation>Buka Kunci Input</translation>
     </message>
     <message>
-        <source>To reclaim all user&apos;s full attention you can lock their computers using this button. In this mode all input devices are locked while the desktop is still visible.</source>
-        <translation type="unfinished"/>
+        <source>Block mouse and keyboard while keeping the desktop visible.</source>
+        <translation>Kunci mouse dan keyboard dengan layar komputer tetap menyala.</translation>
     </message>
     <message>
         <source>Lock screen and input devices of a computer</source>
@@ -5008,6 +5008,36 @@ Example: [^-]*-(PC[0-9]*)</source>
     <message>
         <source>Do not use X Damage extension</source>
         <translation type="unfinished"/>
+    </message>
+</context>
+<context>
+    <name>InternetAccessPlugin</name>
+    <message>
+        <source>Block internet</source>
+        <translation>Blokir Internet</translation>
+    </message>
+    <message>
+        <source>Unblock internet</source>
+        <translation>Buka Blokir Internet</translation>
+    </message>
+    <message>
+        <source>Block public internet access while keeping LAN, CBT servers, and local web intact.</source>
+        <translation>Blokir akses internet publik sambil tetap membuka web lokal, CBT, dan kontrol LAN.</translation>
+    </message>
+</context>
+<context>
+    <name>ClientManagerPlugin</name>
+    <message>
+        <source>Kelola Aplikasi</source>
+        <translation>Kelola Aplikasi</translation>
+    </message>
+    <message>
+        <source>Info Hardware</source>
+        <translation>Info Hardware</translation>
+    </message>
+    <message>
+        <source>Pindai Jaringan</source>
+        <translation>Pindai Jaringan</translation>
     </message>
 </context>
 </TS>

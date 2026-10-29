@@ -47,14 +47,14 @@ ScreenLockFeaturePlugin::ScreenLockFeaturePlugin( QObject* parent ) :
 							 "the screens are blacked." ),
 						 QStringLiteral(":/screenlock/system-lock-screen.png") ),
 	m_lockInputDevicesFeature( QStringLiteral( "InputDevicesLock" ),
-							   Feature::Flag::Mode | Feature::Flag::AllComponents | Feature::Flag::Meta,
+							   Feature::Flag::Mode | Feature::Flag::AllComponents,
 							   Feature::Uid( "e4a77879-e544-4fec-bc18-e534f33b934c" ),
-							   {},
-							   tr( "Lock input devices" ), tr( "Unlock input devices" ),
+							   Feature::Uid(),
+							   tr( "Lock input" ), tr( "Unlock input" ),
 							   tr( "To reclaim all user's full attention you can lock "
 								   "their computers using this button. "
 								   "In this mode all input devices are locked while the desktop is still visible." ),
-							   QStringLiteral(":/screenlock/system-lock-screen.png") ),
+							   QStringLiteral(":/screenlock/input-locked.png") ),
 	m_features( { m_screenLockFeature, m_lockInputDevicesFeature } ),
 	m_lockWidget( nullptr )
 {

@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/internetaccess">
+        <file>internet-block.png</file>
+    </qresource>
+</RCC>

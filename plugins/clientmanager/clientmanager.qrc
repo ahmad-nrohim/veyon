@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/clientmanager">
+        <file>app-manager.png</file>
+        <file>hardware-info.png</file>
+        <file>network-discovery.png</file>
+    </qresource>
+</RCC>

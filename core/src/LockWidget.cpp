@@ -50,7 +50,8 @@ LockWidget::LockWidget( Mode mode, const QPixmap& background, QWidget* parent ) 
 
 	if (mode == DesktopVisible)
 	{
-		m_background = leftMostScreen->grabWindow(0);
+		setAttribute( Qt::WA_TranslucentBackground );
+		setStyleSheet( QStringLiteral("background: transparent;") );
 	}
 
 	VeyonCore::platform().coreFunctions().setSystemUiState( false );
@@ -103,7 +104,7 @@ void LockWidget::paintEvent( QPaintEvent* event )
 	switch( m_mode )
 	{
 	case DesktopVisible:
-		p.drawPixmap( 0, 0, m_background );
+		// Translucent: live desktop stays visible and animated underneath
 		break;
 
 	case BackgroundPixmap:
