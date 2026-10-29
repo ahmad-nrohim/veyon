@@ -98,21 +98,30 @@ jobs:
 
       - name: Build Windows Binaries and Installer
         run: |
-          ninja -C build -j$(nproc) 2>&1 | tee ninja.log
-          cmake --build build --target create-windows-installer 2>&1 | tee -a ninja.log
+          ninja -C build -j$(nproc) 2>&1 | tee ninja.log || {
+            echo "### Ninja Build Errors" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            grep -B 2 -A 6 -E "error:|FAILED:" ninja.log | tail -n 80 >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+          cmake --build build --target create-windows-installer 2>&1 | tee -a ninja.log || {
+            echo "### Installer Creation Errors" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            tail -n 80 ninja.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
 
-      - name: Push Failure Log to Branch
-        if: failure()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B build-log
-          tail -n 250 ninja.log > build_failure.txt
-          git add -f build_failure.txt
-          git commit -m "chore: upload build failure log" || true
-          git push -f origin build-log || true
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ninja-build-log
+          path: ninja.log
 
       - name: Upload Installer Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: veyon-win64-setup
