@@ -77,11 +77,12 @@ NetworkDiscoveryDialog::NetworkDiscoveryDialog( QWidget* parent ) :
 	m_statusLabel->setText( tr( "Ketik subnet IP lalu klik 'Mulai Pemindaian' untuk mencari komputer klien." ) );
 	mainLayout->addWidget( m_statusLabel );
 
-	m_tableWidget->setColumnCount( 3 );
-	m_tableWidget->setHorizontalHeaderLabels( { tr( "Alamat IP" ), tr( "Nama Host" ), tr( "Status Veyon" ) } );
+	m_tableWidget->setColumnCount( 4 );
+	m_tableWidget->setHorizontalHeaderLabels( { tr( "Alamat IP" ), tr( "Nama Host" ), tr( "Status Veyon" ), tr( "Status Daftar" ) } );
 	m_tableWidget->horizontalHeader()->setSectionResizeMode( 0, QHeaderView::ResizeToContents );
 	m_tableWidget->horizontalHeader()->setSectionResizeMode( 1, QHeaderView::Stretch );
 	m_tableWidget->horizontalHeader()->setSectionResizeMode( 2, QHeaderView::ResizeToContents );
+	m_tableWidget->horizontalHeader()->setSectionResizeMode( 3, QHeaderView::ResizeToContents );
 	m_tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows );
 	m_tableWidget->setAlternatingRowColors( true );
 	mainLayout->addWidget( m_tableWidget );
@@ -101,6 +102,24 @@ NetworkDiscoveryDialog::NetworkDiscoveryDialog( QWidget* parent ) :
 NetworkDiscoveryDialog::~NetworkDiscoveryDialog()
 {
 	stopScan();
+}
+
+bool NetworkDiscoveryDialog::isHostAlreadyRegistered( const QString& ip, const QString& hostname ) const
+{
+	const auto jsonArray = VeyonCore::config().value( QStringLiteral("NetworkObjects"), QStringLiteral("BuiltinDirectory"), QJsonArray() ).toJsonArray();
+	ObjectManager<NetworkObject> objectManager( jsonArray );
+	for( const auto& objVal : objectManager.objects() )
+	{
+		const NetworkObject obj( objVal.toObject() );
+		if( obj.type() == NetworkObject::Type::Host )
+		{
+			if( obj.hostAddress() == ip || ( !hostname.isEmpty() && obj.name().compare( hostname, Qt::CaseInsensitive ) == 0 ) )
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 void NetworkDiscoveryDialog::startScan()
@@ -191,13 +210,19 @@ void NetworkDiscoveryDialog::onSocketConnected()
 	auto itemHost = new QTableWidgetItem( tr( "Mencari hostname..." ) );
 	auto itemStatus = new QTableWidgetItem( tr( "Aktif (Port 11100)" ) );
 
+	const bool registered = isHostAlreadyRegistered( ip, QString() );
+	auto itemReg = new QTableWidgetItem( registered ? tr( "Sudah Terdaftar" ) : tr( "Belum Terdaftar" ) );
+
 	itemIp->setFlags( itemIp->flags() ^ Qt::ItemIsEditable );
 	itemHost->setFlags( itemHost->flags() ^ Qt::ItemIsEditable );
 	itemStatus->setFlags( itemStatus->flags() ^ Qt::ItemIsEditable );
+	itemReg->setFlags( itemReg->flags() ^ Qt::ItemIsEditable );
+	itemReg->setForeground( registered ? QBrush( QColor( 34, 139, 34 ) ) : QBrush( QColor( 0, 102, 204 ) ) );
 
 	m_tableWidget->setItem( row, 0, itemIp );
 	m_tableWidget->setItem( row, 1, itemHost );
 	m_tableWidget->setItem( row, 2, itemStatus );
+	m_tableWidget->setItem( row, 3, itemReg );
 
 	// Asynchronous reverse DNS lookup
 	QHostInfo::lookupHost( ip, this, [this, row, ip]( const QHostInfo& hostInfo ) {
@@ -212,6 +237,13 @@ void NetworkDiscoveryDialog::onSocketConnected()
 					h.hostname = resolvedName;
 					break;
 				}
+			}
+
+			const bool isReg = isHostAlreadyRegistered( ip, resolvedName );
+			if( auto regItem = m_tableWidget->item( row, 3 ) )
+			{
+				regItem->setText( isReg ? tr( "Sudah Terdaftar" ) : tr( "Belum Terdaftar" ) );
+				regItem->setForeground( isReg ? QBrush( QColor( 34, 139, 34 ) ) : QBrush( QColor( 0, 102, 204 ) ) );
 			}
 		}
 	} );
@@ -282,30 +314,41 @@ void NetworkDiscoveryDialog::addDiscoveredToLab()
 	int addedCount = 0;
 	for( const auto& host : m_discoveredHosts )
 	{
-		bool exists = false;
-		for( const auto& objVal : objectManager.objects() )
+		const QString pcName = host.hostname.isEmpty() ? host.ip : host.hostname;
+		if( !isHostAlreadyRegistered( host.ip, pcName ) )
 		{
-			const NetworkObject obj( objVal.toObject() );
-			if( obj.type() == NetworkObject::Type::Host && obj.hostAddress() == host.ip )
-			{
-				exists = true;
-				break;
-			}
-		}
-
-		if( !exists )
-		{
-			const QString pcName = host.hostname.isEmpty() ? host.ip : host.hostname;
 			objectManager.add( NetworkObject( NetworkObject::Type::Host, pcName, host.ip, {}, {}, QUuid::createUuid(), labLocation.uid() ) );
 			++addedCount;
+
+			// Update table row status
+			for( int r = 0; r < m_tableWidget->rowCount(); ++r )
+			{
+				if( m_tableWidget->item( r, 0 ) && m_tableWidget->item( r, 0 )->text() == host.ip )
+				{
+					if( auto regItem = m_tableWidget->item( r, 3 ) )
+					{
+						regItem->setText( tr( "Sudah Terdaftar" ) );
+						regItem->setForeground( QBrush( QColor( 34, 139, 34 ) ) );
+					}
+					break;
+				}
+			}
 		}
 	}
 
-	VeyonCore::config().setValue( QStringLiteral("NetworkObjects"), objectManager.objects(), QStringLiteral("BuiltinDirectory") );
+	if( addedCount > 0 )
+	{
+		VeyonCore::config().setValue( QStringLiteral("NetworkObjects"), objectManager.objects(), QStringLiteral("BuiltinDirectory") );
 
-	ConfigurationManager configManager;
-	configManager.saveConfiguration();
+		ConfigurationManager configManager;
+		configManager.saveConfiguration();
 
-	QMessageBox::information( this, tr( "Sukses" ),
-		tr( "%1 komputer baru berhasil ditambahkan ke lokasi '%2'!" ).arg( addedCount ).arg( labLocation.name() ) );
+		QMessageBox::information( this, tr( "Sukses" ),
+			tr( "%1 komputer baru berhasil ditambahkan ke lokasi '%2'!" ).arg( addedCount ).arg( labLocation.name() ) );
+	}
+	else
+	{
+		QMessageBox::information( this, tr( "Informasi" ),
+			tr( "Semua komputer yang terdeteksi sudah terdaftar di konfigurasi lab." ) );
+	}
 }

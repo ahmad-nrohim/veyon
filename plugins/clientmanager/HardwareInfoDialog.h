@@ -32,6 +32,7 @@ public:
 
 private Q_SLOTS:
 	void refreshInfo();
+	void exportToCsv();
 
 private:
 	ComputerControlInterfaceList m_interfaces;
@@ -39,6 +40,7 @@ private:
 
 	QTableWidget* m_tableWidget;
 	QPushButton* m_refreshButton;
+	QPushButton* m_exportButton;
 	QPushButton* m_closeButton;
 	QLabel* m_statusLabel;
 };

@@ -7,6 +7,11 @@
  */
 
 #include "HardwareInfoDialog.h"
+#include <QFileDialog>
+#include <QFile>
+#include <QTextStream>
+#include <QMessageBox>
+#include <QStringConverter>
 
 HardwareInfoDialog::HardwareInfoDialog( const ComputerControlInterfaceList& interfaces,
 									   const Feature::Uid& featureUid,
@@ -16,6 +21,7 @@ HardwareInfoDialog::HardwareInfoDialog( const ComputerControlInterfaceList& inte
 	m_featureUid( featureUid ),
 	m_tableWidget( new QTableWidget( this ) ),
 	m_refreshButton( new QPushButton( tr( "Segarkan" ), this ) ),
+	m_exportButton( new QPushButton( tr( "Ekspor ke CSV" ), this ) ),
 	m_closeButton( new QPushButton( tr( "Tutup" ), this ) ),
 	m_statusLabel( new QLabel( this ) )
 {
@@ -45,11 +51,13 @@ HardwareInfoDialog::HardwareInfoDialog( const ComputerControlInterfaceList& inte
 
 	auto bottomLayout = new QHBoxLayout();
 	bottomLayout->addWidget( m_refreshButton );
+	bottomLayout->addWidget( m_exportButton );
 	bottomLayout->addStretch();
 	bottomLayout->addWidget( m_closeButton );
 	mainLayout->addLayout( bottomLayout );
 
 	connect( m_refreshButton, &QPushButton::clicked, this, &HardwareInfoDialog::refreshInfo );
+	connect( m_exportButton, &QPushButton::clicked, this, &HardwareInfoDialog::exportToCsv );
 	connect( m_closeButton, &QPushButton::clicked, this, &QDialog::accept );
 
 	refreshInfo();
@@ -121,4 +129,55 @@ void HardwareInfoDialog::handleHardwareInfoResponse( ComputerControlInterface::P
 	m_tableWidget->setItem( row, 5, itemUptime );
 
 	m_statusLabel->setText( tr( "Data diterima dari %1 komputer." ).arg( m_tableWidget->rowCount() ) );
+}
+
+void HardwareInfoDialog::exportToCsv()
+{
+	if( m_tableWidget->rowCount() == 0 )
+	{
+		QMessageBox::information( this, tr( "Informasi" ), tr( "Tidak ada data spesifikasi untuk diekspor." ) );
+		return;
+	}
+
+	const QString filePath = QFileDialog::getSaveFileName( this, tr( "Ekspor Spesifikasi Hardware" ),
+														   QStringLiteral( "spesifikasi_hardware_lab.csv" ),
+														   tr( "File CSV (*.csv)" ) );
+	if( filePath.isEmpty() )
+	{
+		return;
+	}
+
+	QFile file( filePath );
+	if( !file.open( QIODevice::WriteOnly | QIODevice::Text ) )
+	{
+		QMessageBox::critical( this, tr( "Kesalahan" ),
+							   tr( "Gagal membuka berkas untuk penulisan: %1" ).arg( file.errorString() ) );
+		return;
+	}
+
+	QTextStream out( &file );
+	out.setEncoding( QStringConverter::Utf8 );
+	out.setGenerateByteOrderMark( true );
+
+	// Write CSV Header
+	out << "\"No\",\"Komputer\",\"Model Prosesor\",\"RAM (Total/Bebas)\",\"Disk C: (Total/Sisa)\",\"Sistem Operasi\",\"Uptime\"\n";
+
+	for( int r = 0; r < m_tableWidget->rowCount(); ++r )
+	{
+		QStringList cols;
+		cols << QString::number( r + 1 );
+		for( int c = 0; c < m_tableWidget->columnCount(); ++c )
+		{
+			QString val = m_tableWidget->item( r, c ) ? m_tableWidget->item( r, c )->text() : QString();
+			val.replace( QLatin1Char( '"' ), QStringLiteral( "\"\"" ) );
+			cols << QStringLiteral( "\"%1\"" ).arg( val );
+		}
+		out << cols.join( QLatin1Char( ',' ) ) << "\n";
+	}
+
+	file.close();
+
+	QMessageBox::information( this, tr( "Sukses" ),
+							  tr( "Data spesifikasi %1 komputer berhasil diekspor ke:\n%2" )
+							  .arg( m_tableWidget->rowCount() ).arg( filePath ) );
 }

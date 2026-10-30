@@ -202,7 +202,8 @@ bool ClientManagerPlugin::startFeature( VeyonMasterInterface& master, const Feat
 			return false;
 		}
 
-		AppManagerDialog dialog( computerControlInterfaces, feature.uid(), master.mainWindow() );
+		AppManagerDialog dialog( computerControlInterfaces, master.allComputerControlInterfaces(),
+								 feature.uid(), master.mainWindow() );
 		m_activeAppDialog = &dialog;
 		dialog.exec();
 		m_activeAppDialog = nullptr;

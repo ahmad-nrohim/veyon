@@ -36,6 +36,7 @@ private Q_SLOTS:
 
 private:
 	void checkNextBatch();
+	bool isHostAlreadyRegistered( const QString& ip, const QString& hostname ) const;
 
 	QLineEdit* m_subnetEdit;
 	QPushButton* m_scanButton;

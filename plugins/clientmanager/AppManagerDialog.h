@@ -24,7 +24,8 @@ class AppManagerDialog : public QDialog
 {
 	Q_OBJECT
 public:
-	explicit AppManagerDialog( const ComputerControlInterfaceList& interfaces,
+	explicit AppManagerDialog( const ComputerControlInterfaceList& selectedInterfaces,
+							   const ComputerControlInterfaceList& allInterfaces,
 							   const Feature::Uid& featureUid,
 							   QWidget* parent = nullptr );
 	~AppManagerDialog() override;
@@ -34,16 +35,19 @@ public:
 private Q_SLOTS:
 	void refreshApps();
 	void killSelectedProcess();
-	void killCustomProcess();
+	void killCustomProcessSelected();
+	void killCustomProcessAll();
 
 private:
-	ComputerControlInterfaceList m_interfaces;
+	ComputerControlInterfaceList m_selectedInterfaces;
+	ComputerControlInterfaceList m_allInterfaces;
 	Feature::Uid m_featureUid;
 
 	QTableWidget* m_tableWidget;
 	QLineEdit* m_customProcessEdit;
 	QPushButton* m_killSelectedButton;
-	QPushButton* m_killCustomButton;
+	QPushButton* m_killCustomSelectedButton;
+	QPushButton* m_killCustomAllButton;
 	QPushButton* m_refreshButton;
 	QPushButton* m_closeButton;
 	QLabel* m_statusLabel;

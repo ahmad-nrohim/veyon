@@ -10,26 +10,29 @@
 #include <QMessageBox>
 #include <QTimer>
 
-AppManagerDialog::AppManagerDialog( const ComputerControlInterfaceList& interfaces,
+AppManagerDialog::AppManagerDialog( const ComputerControlInterfaceList& selectedInterfaces,
+								   const ComputerControlInterfaceList& allInterfaces,
 								   const Feature::Uid& featureUid,
 								   QWidget* parent ) :
 	QDialog( parent ),
-	m_interfaces( interfaces ),
+	m_selectedInterfaces( selectedInterfaces ),
+	m_allInterfaces( allInterfaces ),
 	m_featureUid( featureUid ),
 	m_tableWidget( new QTableWidget( this ) ),
 	m_customProcessEdit( new QLineEdit( this ) ),
-	m_killSelectedButton( new QPushButton( tr( "Tutup Proses Terpilih" ), this ) ),
-	m_killCustomButton( new QPushButton( tr( "Hentikan Proses" ), this ) ),
+	m_killSelectedButton( new QPushButton( tr( "Tutup Baris Terpilih" ), this ) ),
+	m_killCustomSelectedButton( new QPushButton( tr( "Hentikan (Klien Terpilih)" ), this ) ),
+	m_killCustomAllButton( new QPushButton( tr( "Hentikan Serentak (Semua Klien)" ), this ) ),
 	m_refreshButton( new QPushButton( tr( "Segarkan" ), this ) ),
 	m_closeButton( new QPushButton( tr( "Tutup" ), this ) ),
 	m_statusLabel( new QLabel( this ) )
 {
 	setWindowTitle( tr( "Manajemen Aplikasi Klien" ) );
-	resize( 750, 480 );
+	resize( 850, 520 );
 
 	auto mainLayout = new QVBoxLayout( this );
 
-	m_statusLabel->setText( tr( "Menghubungi %1 komputer klien..." ).arg( m_interfaces.size() ) );
+	m_statusLabel->setText( tr( "Menghubungi %1 komputer klien..." ).arg( m_selectedInterfaces.size() ) );
 	mainLayout->addWidget( m_statusLabel );
 
 	m_tableWidget->setColumnCount( 4 );
@@ -47,9 +50,10 @@ AppManagerDialog::AppManagerDialog( const ComputerControlInterfaceList& interfac
 
 	auto actionLayout = new QHBoxLayout();
 	m_customProcessEdit->setPlaceholderText( tr( "Nama proses untuk ditutup (misal: chrome.exe atau Game.exe)" ) );
-	actionLayout->addWidget( m_customProcessEdit, 2 );
-	actionLayout->addWidget( m_killCustomButton, 1 );
-	actionLayout->addWidget( m_killSelectedButton, 1 );
+	actionLayout->addWidget( m_customProcessEdit, 3 );
+	actionLayout->addWidget( m_killCustomSelectedButton, 2 );
+	actionLayout->addWidget( m_killCustomAllButton, 2 );
+	actionLayout->addWidget( m_killSelectedButton, 2 );
 	mainLayout->addLayout( actionLayout );
 
 	auto bottomLayout = new QHBoxLayout();
@@ -60,7 +64,8 @@ AppManagerDialog::AppManagerDialog( const ComputerControlInterfaceList& interfac
 
 	connect( m_refreshButton, &QPushButton::clicked, this, &AppManagerDialog::refreshApps );
 	connect( m_killSelectedButton, &QPushButton::clicked, this, &AppManagerDialog::killSelectedProcess );
-	connect( m_killCustomButton, &QPushButton::clicked, this, &AppManagerDialog::killCustomProcess );
+	connect( m_killCustomSelectedButton, &QPushButton::clicked, this, &AppManagerDialog::killCustomProcessSelected );
+	connect( m_killCustomAllButton, &QPushButton::clicked, this, &AppManagerDialog::killCustomProcessAll );
 	connect( m_closeButton, &QPushButton::clicked, this, &QDialog::accept );
 
 	refreshApps();
@@ -71,9 +76,9 @@ AppManagerDialog::~AppManagerDialog() = default;
 void AppManagerDialog::refreshApps()
 {
 	m_tableWidget->setRowCount( 0 );
-	m_statusLabel->setText( tr( "Memuat daftar aplikasi dari %1 komputer..." ).arg( m_interfaces.size() ) );
+	m_statusLabel->setText( tr( "Memuat daftar aplikasi dari %1 komputer..." ).arg( m_selectedInterfaces.size() ) );
 
-	for( const auto& iface : m_interfaces )
+	for( const auto& iface : m_selectedInterfaces )
 	{
 		if( iface )
 		{
@@ -121,34 +126,52 @@ void AppManagerDialog::killSelectedProcess()
 		return;
 	}
 
+	const QString compName = m_tableWidget->item( row, 0 ) ? m_tableWidget->item( row, 0 )->text() : QString();
 	const QString procName = m_tableWidget->item( row, 2 )->text();
 	const qlonglong pid = m_tableWidget->item( row, 1 )->text().toLongLong();
 
-	// Command 3 = KillProcess, argument 0 = pid, argument 1 = procName
-	for( const auto& iface : m_interfaces )
+	// Send specifically to the matching computer
+	bool sent = false;
+	for( const auto& iface : m_allInterfaces )
 	{
-		if( iface )
+		if( iface && iface->computerName() == compName )
 		{
 			iface->sendFeatureMessage( FeatureMessage( m_featureUid, FeatureMessage::Command( 3 ) )
 									   .addArgument( 0, pid )
 									   .addArgument( 1, procName ) );
+			sent = true;
+			break;
 		}
 	}
 
-	m_statusLabel->setText( tr( "Perintah penghentian proses '%1' (PID: %2) telah dikirim." ).arg( procName ).arg( pid ) );
+	if( !sent )
+	{
+		for( const auto& iface : m_selectedInterfaces )
+		{
+			if( iface )
+			{
+				iface->sendFeatureMessage( FeatureMessage( m_featureUid, FeatureMessage::Command( 3 ) )
+										   .addArgument( 0, pid )
+										   .addArgument( 1, procName ) );
+			}
+		}
+	}
+
+	m_statusLabel->setText( tr( "Perintah penghentian proses '%1' (PID: %2) pada '%3' telah dikirim." )
+							.arg( procName ).arg( pid ).arg( compName ) );
 	QTimer::singleShot( 1000, this, &AppManagerDialog::refreshApps );
 }
 
-void AppManagerDialog::killCustomProcess()
+void AppManagerDialog::killCustomProcessSelected()
 {
 	const QString procName = m_customProcessEdit->text().trimmed();
 	if( procName.isEmpty() )
 	{
-		QMessageBox::information( this, tr( "Informasi" ), tr( "Ketikkan nama proses (contoh: chrome.exe)." ) );
+		QMessageBox::information( this, tr( "Informasi" ), tr( "Ketikkan nama proses (contoh: chrome.exe atau Game.exe)." ) );
 		return;
 	}
 
-	for( const auto& iface : m_interfaces )
+	for( const auto& iface : m_selectedInterfaces )
 	{
 		if( iface )
 		{
@@ -158,7 +181,43 @@ void AppManagerDialog::killCustomProcess()
 		}
 	}
 
-	m_statusLabel->setText( tr( "Perintah penutupan proses '%1' telah dikirim ke semua klien." ).arg( procName ) );
+	m_statusLabel->setText( tr( "Perintah penutupan proses '%1' telah dikirim ke %2 klien terpilih." )
+							.arg( procName ).arg( m_selectedInterfaces.size() ) );
+	m_customProcessEdit->clear();
+	QTimer::singleShot( 1000, this, &AppManagerDialog::refreshApps );
+}
+
+void AppManagerDialog::killCustomProcessAll()
+{
+	const QString procName = m_customProcessEdit->text().trimmed();
+	if( procName.isEmpty() )
+	{
+		QMessageBox::information( this, tr( "Informasi" ), tr( "Ketikkan nama proses (contoh: chrome.exe atau Game.exe)." ) );
+		return;
+	}
+
+	const auto reply = QMessageBox::warning( this, tr( "Konfirmasi Hentikan Serentak" ),
+		tr( "Apakah Anda yakin ingin menghentikan proses '%1' secara serentak di SEMUA (%2) komputer klien lab?" )
+		.arg( procName ).arg( m_allInterfaces.size() ),
+		QMessageBox::Yes | QMessageBox::No, QMessageBox::No );
+
+	if( reply != QMessageBox::Yes )
+	{
+		return;
+	}
+
+	for( const auto& iface : m_allInterfaces )
+	{
+		if( iface )
+		{
+			iface->sendFeatureMessage( FeatureMessage( m_featureUid, FeatureMessage::Command( 3 ) )
+									   .addArgument( 0, static_cast<qlonglong>( 0 ) )
+									   .addArgument( 1, procName ) );
+		}
+	}
+
+	m_statusLabel->setText( tr( "Perintah penghentian proses '%1' telah dikirim ke semua (%2) komputer klien lab." )
+							.arg( procName ).arg( m_allInterfaces.size() ) );
 	m_customProcessEdit->clear();
 	QTimer::singleShot( 1000, this, &AppManagerDialog::refreshApps );
 }
